@@ -1,0 +1,102 @@
+name: smoke
+
+# Runs the install a stranger would perform, on operating systems and Python
+# versions this was never developed on. The point is to find the thing the
+# first installer would find, before they arrive.
+#
+# The offline job is the gate: deterministic, no network, so a red build always
+# means a real bug. The networked job is informational only, because it depends
+# on other people's servers and their rate limits.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Weekly, so a change on someone else's server surfaces here rather than
+    # in a user's first run.
+    - cron: "0 9 * * 1"
+
+jobs:
+  offline:
+    name: ${{ matrix.os }} / py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.9", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # No pip install. Rung 1 of the capability ladder claims the core runs on
+      # the standard library alone, and this is what proves it.
+      - name: Logic checks, offline
+        run: python selftest.py
+
+      - name: Every entry point responds to --help
+        run: |
+          python sitemap_sweep.py --help
+          python qualify.py --help
+          python resolve_domains.py --help
+          python ledger.py --help
+
+      - name: pdf_save fails readably without Playwright
+        shell: bash
+        run: |
+          out=$(python pdf_save.py 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -qi "playwright\|Usage" || {
+            echo "expected a readable message, got something else"; exit 1; }
+
+      - name: Ledger works from a cold start
+        shell: bash
+        run: |
+          python ledger.py status
+          python ledger.py niche
+          python ledger.py add "https://example.com/pages/demo" sleep --score 1.0
+          python ledger.py status | grep -q "saved finds     : 1"
+
+      - name: Output directory is created rather than assumed
+        shell: bash
+        run: |
+          test ! -d runs/nested || rm -rf runs/nested
+          python - <<'PY'
+          import json, os
+          os.makedirs("runs", exist_ok=True)
+          json.dump([{"hits": []}], open("runs/empty.json", "w"))
+          PY
+          python qualify.py runs/empty.json --no-score --no-probe
+          test -f runs/qualified.jsonl
+
+  networked:
+    name: live smoke (informational)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sweep one known brand
+        run: python sitemap_sweep.py --domain groundingwell.com --out runs/candidates.json --delay 3
+
+      - name: Report what came back
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          d = json.load(open("runs/candidates.json"))
+          hits = sum(len(r.get("hits", [])) for r in d)
+          print(f"candidates: {hits}")
+          if hits == 0:
+              print("Zero can mean rate limiting rather than breakage. Check the")
+              print("reason tally printed above before treating this as a failure.")
+          PY

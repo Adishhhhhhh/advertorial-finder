@@ -115,7 +115,11 @@ def page_title(html):
 
 
 FIRST_PERSON = re.compile(r"\b(I|I'd|I'm|I've|my|me)\b")
-QUOTED = re.compile(r"[\"“][^\"”]{25,300}[\"”]")
+# 15 rather than 25: advertorial pull-quotes are frequently short ("I was
+# skeptical.", "It just works."), and the earlier floor missed all of them.
+# We match against visible text with tags already stripped, so there are no
+# HTML attribute values to false-positive on.
+QUOTED = re.compile(r"[\"“][^\"”]{15,300}[\"”]")
 EDITORIAL = re.compile(
     r"\d+\s+reasons|\breasons? why\b|here'?s (?:what|why|how)|"
     r"what (?:happened|nobody|doctors)|the (?:real|hidden) (?:reason|cause)|"

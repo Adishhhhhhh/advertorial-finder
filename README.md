@@ -1,5 +1,7 @@
 # Advertorial Finder
 
+[![smoke](https://github.com/Adishhhhhhh/advertorial-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/Adishhhhhhh/advertorial-finder/actions/workflows/ci.yml)
+
 **There is an ad library for creative. There is nothing equivalent for landing pages.**
 
 You can study a thousand competitor ads in an afternoon. Studying advertorials is harder: the good ones are unlisted `/pages/` slugs reached only through paid traffic, the public swipe files are frozen snapshots of what worked years ago, and the live chumboxes that carry them are geo-locked to a US IP.
@@ -75,6 +77,7 @@ See [INSTALL.md](INSTALL.md) for what works without which dependency, and for wh
 | `pdf_save.py` | Captures a live page as a popup-free PDF before it disappears. |
 | `resolve_domains.py` | Turns a list of brand names into verified domains for `brands.txt`. |
 | `ledger.py` | Session state: niche rotation, dedupe, and re-checking whether saved finds are still alive. |
+| `selftest.py` | Offline checks on the decision logic. No network, so it gives the same answer on your machine as on mine. Run it if anything behaves oddly. |
 
 ---
 
