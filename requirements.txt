@@ -1,0 +1,10 @@
+# Channel D (sitemap sweep), stage 2/3 (qualify), domain resolution:
+#   standard library only. No install needed.
+#
+# Capture (pdf_save.py) is the only thing with a dependency:
+playwright>=1.40
+#   after installing, fetch the browser once:
+#   py -m playwright install chromium
+#
+# Optional, for verifying a saved PDF is not a repeated-popup capture:
+pypdf>=4.0

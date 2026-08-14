@@ -1,0 +1,21 @@
+# Run data. Other people's advertising, held for study, never redistributed.
+runs/
+Advertorial-Repo/
+swipe_refs/
+*.pdf
+
+# Working files
+*.log
+sweep_candidates.json
+resolved*.txt
+resolved*.json
+unresolved_names.txt
+retry*_urls.txt
+qualified.jsonl
+rejected.jsonl
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
