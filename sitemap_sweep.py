@@ -58,7 +58,33 @@ SLUG = re.compile(
 )
 
 # Slugs that match the pattern but are almost never advertorials.
-NOISE = re.compile(r"our-story|why-buy-from-us|brand-story|why-us|our-mission|success-story", re.I)
+#
+# The utility group matters more than it looks. A privacy policy is long,
+# often carries a -v2 suffix, and has years of archive history, so without
+# this it scores ABOVE every real advertorial in the corpus. That actually
+# happened: cymbiotika/pages/privacy-policy-v2 ranked first at 13.38.
+NOISE = re.compile(
+    r"our-story|why-buy-from-us|brand-story|why-us|our-mission|success-story|"
+    r"privacy|terms|tracking|shipping|returns?|refund|contact|faq|"
+    r"careers?|accessibility|cookie|legal|disclaimer|imprint|"
+    r"wholesale|affiliate-program|press|sitemap|account|login|gift-card",
+    re.I,
+)
+
+# Shopify publishes the same page under every locale it sells in, so one
+# advertorial can appear a dozen times as /de-de/pages/x, /nl/pages/x and so
+# on. Counting those separately inflates every total and fills the ranked
+# list with duplicates of one page.
+LOCALE = re.compile(r"^/[a-z]{2}(?:-[a-z]{2})?(?=/)", re.I)
+
+
+def canonical(url):
+    """Locale-stripped form of a URL, for deduplication."""
+    m = re.match(r"^(https?://[^/]+)(/.*)$", url)
+    if not m:
+        return url
+    host, path = m.group(1), m.group(2)
+    return host + LOCALE.sub("", path, count=1)
 
 
 def fetch(url, timeout=20, retries=2):
@@ -135,11 +161,20 @@ def probe(entry):
         last = reason
         if not locs:
             continue
-        hits = [
+        raw = [
             l for l in locs
             if "/pages/" in l and SLUG.search(l) and not NOISE.search(l)
         ]
-        return {"entry": entry, "domain": d, "pages": len(locs), "hits": sorted(hits)}
+        # keep one URL per canonical page, preferring the shortest (usually the
+        # locale-free original) so the survivor is the one a reader would see
+        best = {}
+        for l in raw:
+            c = canonical(l)
+            if c not in best or len(l) < len(best[c]):
+                best[c] = l
+        hits = sorted(best.values())
+        return {"entry": entry, "domain": d, "pages": len(locs),
+                "hits": hits, "locale_dupes": len(raw) - len(hits)}
     return {"entry": entry, "domain": None, "pages": 0, "hits": [], "reason": last}
 
 

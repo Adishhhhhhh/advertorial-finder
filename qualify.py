@@ -134,12 +134,27 @@ EDITORIAL = re.compile(
 SIGNAL_THRESHOLD = 3
 
 
+# Second line of defence. Even with the sweep's noise filter, utility pages
+# arrive from other channels (a dork can surface a terms page). They are long,
+# old, and stable, which is exactly the profile the scorer rewards, so they
+# must be excluded on identity rather than left to the format threshold.
+UTILITY = re.compile(
+    r"/pages/[^/?#]*(privacy|terms|tracking|shipping|returns?|refund|"
+    r"contact|faq|careers?|accessibility|cookie|legal|disclaimer|imprint|"
+    r"wholesale|affiliate-program|sitemap|account|login|gift-card)",
+    re.I,
+)
+
+
 def qualify(url, seen):
     """Return (verdict, record). verdict is 'pass' or a failure reason."""
     rec = {"url": url}
 
     if url.rstrip("/") in seen:
         return "already_in_ledger", rec
+
+    if UTILITY.search(url):
+        return "utility_page", rec
 
     try:
         final, html = fetch(url)
@@ -291,15 +306,34 @@ def score(rec, do_probe=True):
 
 # ---------------------------------------------------------------------- driver
 
+LOCALE = re.compile(r"^/[a-z]{2}(?:-[a-z]{2})?(?=/)", re.I)
+
+
+def canonical(url):
+    """Locale-stripped form, so /de-de/pages/x and /pages/x are one page."""
+    m = re.match(r"^(https?://[^/]+)(/.*)$", url)
+    if not m:
+        return url.rstrip("/")
+    return (m.group(1) + LOCALE.sub("", m.group(2), count=1)).rstrip("/")
+
+
 def load_candidates(path):
     if path.endswith(".json"):
         data = json.load(open(path, encoding="utf-8"))
         urls = []
         for row in data:
             urls += row.get("hits", [])
-        return urls
-    return [l.strip() for l in open(path, encoding="utf-8")
-            if l.strip() and not l.startswith("#")]
+    else:
+        urls = [l.strip() for l in open(path, encoding="utf-8")
+                if l.strip() and not l.startswith("#")]
+
+    # Collapse locale duplicates, keeping the shortest form of each page.
+    best = {}
+    for u in urls:
+        c = canonical(u)
+        if c not in best or len(u) < len(best[c]):
+            best[c] = u.rstrip("/")
+    return list(best.values())
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -335,7 +369,6 @@ def main():
     globals()["DOMAIN_DELAY"] = args.delay
 
     urls = load_candidates(args.candidates)
-    urls = list(dict.fromkeys(u.rstrip("/") for u in urls))
     if args.limit:
         urls = urls[:args.limit]
 

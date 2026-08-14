@@ -71,6 +71,23 @@ check("plain product slug does not match",
       bool(sw.SLUG.search("/pages/shipping-policy")), False)
 check("our-story is filtered as noise",
       bool(sw.NOISE.search("/pages/our-story")), True)
+check("privacy policy is filtered as noise",
+      bool(sw.NOISE.search("/pages/privacy-policy-v2")), True)
+check("tracking page is filtered as noise",
+      bool(sw.NOISE.search("/pages/tracking-v2")), True)
+check("real advertorial is not filtered as noise",
+      bool(sw.NOISE.search("/pages/5-reasons-why-women-need-meno-gut")), False)
+
+section("sitemap_sweep: locale deduplication")
+check("locale prefix stripped",
+      sw.canonical("https://spacegoods.com/de-de/pages/rainbow-dust-review-2026"),
+      "https://spacegoods.com/pages/rainbow-dust-review-2026")
+check("short locale stripped",
+      sw.canonical("https://spacegoods.com/nl/pages/x"),
+      "https://spacegoods.com/pages/x")
+check("non-locale path untouched",
+      sw.canonical("https://x.com/pages/sheet-adv-14"),
+      "https://x.com/pages/sheet-adv-14")
 
 section("sitemap_sweep: domain candidates")
 check("bare domain passes through",
@@ -126,6 +143,16 @@ check("variant stem", m.group(1) if m else None, "boldhealth")
 check("variant number", m.group(2) if m else None, "020")
 check("non-numbered slug is not a variant",
       q.VARIANT.match("miracle-joint-drops"), None)
+
+section("qualify: utility pages are excluded on identity")
+check("privacy policy rejected",
+      bool(q.UTILITY.search("https://x.com/pages/privacy-policy-v2")), True)
+check("tracking page rejected",
+      bool(q.UTILITY.search("https://x.com/pages/tracking-v2")), True)
+check("advertorial not rejected",
+      bool(q.UTILITY.search("https://x.com/pages/5-reasons-why")), False)
+check("locale duplicates collapse to one",
+      q.canonical("https://s.com/en-nl/pages/x"), "https://s.com/pages/x")
 
 section("qualify: threshold is 3 of 5, and never all-or-nothing")
 check("threshold value", q.SIGNAL_THRESHOLD, 3)
