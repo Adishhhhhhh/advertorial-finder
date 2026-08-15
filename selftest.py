@@ -127,7 +127,8 @@ check("byline detected", bool(q.BYLINE.search(text[:3000])), True)
 check("soft CTA detected", bool(q.SOFT_CTA.search(text)), True)
 check("editorial framing detected", bool(q.EDITORIAL.search(text)), True)
 check("quoted speech detected", bool(q.QUOTED.search(text)), True)
-check("title extracted", q.page_title(ADVERTORIAL), "How I Fixed It &ndash; Brand")
+check("title extracted and entities decoded",
+      q.page_title(ADVERTORIAL), "How I Fixed It – Brand")
 
 section("qualify: VSL detection")
 check("video-summary title flagged",

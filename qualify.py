@@ -20,7 +20,7 @@ Outputs (next to this script):
     rejected.jsonl    failures with the reason each one failed
 """
 
-import os, re, sys, json, time, argparse, urllib.request, urllib.error, urllib.parse
+import os, re, sys, json, time, argparse, html as htmlmod, urllib.request, urllib.error, urllib.parse
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
@@ -111,7 +111,10 @@ def visible_text(html):
 
 def page_title(html):
     m = re.search(r"<title[^>]*>(.*?)</title>", html, re.I | re.S)
-    return re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
+    if not m:
+        return ""
+    # Titles are full of &ndash; &amp; &#39; and reading them raw is miserable.
+    return re.sub(r"\s+", " ", htmlmod.unescape(m.group(1))).strip()
 
 
 FIRST_PERSON = re.compile(r"\b(I|I'd|I'm|I've|my|me)\b")

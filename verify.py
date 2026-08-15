@@ -156,17 +156,36 @@ def main():
                          "--no-probe", "--delay", "2"], timeout=900)
         passed = num(out, r"passed\s*:\s*(\d+)")
         failed = num(out, r"failed\s*:\s*(\d+)")
-        reasons = re.findall(r"^\s+(\d+)\s+(\w+)", out, re.M)
         if code == 0 and passed is not None:
             result("qualify a sample", True, f"{passed} passed, {failed} rejected")
+
+            # Read the ledger, never scrape stdout. Scraping counted advertorial
+            # TITLES as rejection reasons, because "5 Reasons to Choose..." looks
+            # identical to a tally row once you are matching loose text. Five real
+            # rejections were reported as twenty phantom ones, so the check meant
+            # to catch inflated numbers was producing one.
+            reasons = {}
+            rj = os.path.join(HERE, "runs", "rejected.jsonl")
+            try:
+                for line in open(rj, encoding="utf-8"):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    r = json.loads(line).get("reason", "unknown").split(":")[0]
+                    reasons[r] = reasons.get(r, 0) + 1
+            except FileNotFoundError:
+                pass
+
             if reasons:
-                top = max(reasons, key=lambda r: int(r[0]))
-                total = sum(int(n) for n, _ in reasons)
-                dominant = total and int(top[0]) / total > 0.9 and total > 5
+                total = sum(reasons.values())
+                label, top = max(reasons.items(), key=lambda kv: kv[1])
+                dominant = total > 5 and top / total > 0.9
+                spread = ", ".join(f"{k} x{v}" for k, v in
+                                   sorted(reasons.items(), key=lambda kv: -kv[1]))
                 result("rejections are varied, not one dominant cause",
-                       not dominant,
-                       f"top reason '{top[1]}' is {top[0]}/{total}",
-                       warn=dominant)
+                       not dominant, f"{total} rejected: {spread}", warn=dominant)
+            else:
+                result("rejection log readable", True, "nothing rejected in this sample")
         else:
             result("qualify a sample", False, out.strip()[-160:])
 

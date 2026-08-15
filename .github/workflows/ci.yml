@@ -49,6 +49,8 @@ jobs:
           python qualify.py --help
           python resolve_domains.py --help
           python ledger.py --help
+          python study.py --help
+          python verify.py --help
 
       - name: pdf_save fails readably without Playwright
         shell: bash

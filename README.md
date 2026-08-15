@@ -14,7 +14,9 @@ This finds live ones, qualifies them, and ranks them by how long they have survi
 
 A ranked reading list of real, currently-live advertorials, each one verified to be story-led long-form rather than a product page or a video bridge, scored by measured duration rather than by how fresh it looks.
 
-A single run against 165 known DTC brands produced **136 qualified advertorials across 24 brands**, including two 8,000-word variants from a brand whose advertorials were already being tracked one page at a time.
+One unattended run across the 159 shipped brand domains produced **201 qualified advertorials across 32 brands**. The top result is a 17,316-word leaky-gut lander on its third variant, continuously archived for three years and eight months. Length, iteration, and survival all agreeing.
+
+That is one channel of six, and the only one bounded by a brand list at all.
 
 ---
 
@@ -63,17 +65,35 @@ Full method, including the query taxonomy and every failure mode paid for in a r
 
 > Commands below use `py`, the Windows Python launcher. On macOS and Linux use `python3` instead. Nothing else changes.
 
+Build the list once:
+
 ```bash
-py sitemap_sweep.py brands.txt --out runs/candidates.json
-py qualify.py runs/candidates.json
+py sitemap_sweep.py brands.txt --out runs/candidates.json && py qualify.py runs/candidates.json
 ```
 
-That is the whole thing, and it needs no dependencies. Outputs land in `runs/`.
-
-Then read `runs/qualified.jsonl`, top of the list first, and capture what you want to keep:
+Then, every time you want something to read:
 
 ```bash
-py pdf_save.py "URL" "niche-slug"
+py study.py
+```
+
+Three advertorials, ranked, spread across different brands, with why each one ranked. It asks whether to save them; answering `y` captures each as a PDF into `Advertorial-Repo/` and records it so you are never offered the same page twice.
+
+```
+1. JustThrive
+   https://justthrivehealth.com/pages/leaky-gut-landing-page-v3
+   niche: gut   score 15.43
+   live 44.5 months · sole survivor of variant 3 · 17,316 words
+
+Save these to Advertorial-Repo/? [y/N]
+```
+
+`-n 1` for one, `--niche sleep` to pick the category, `--no-save` to browse. Building the list needs no dependencies at all; only the PDF capture needs Playwright.
+
+To check the install works before trusting any of it:
+
+```bash
+py verify.py
 ```
 
 See [INSTALL.md](INSTALL.md) for what works without which dependency, and for what this cannot do.
@@ -89,6 +109,7 @@ See [INSTALL.md](INSTALL.md) for what works without which dependency, and for wh
 | `pdf_save.py` | Captures a live page as a popup-free PDF before it disappears. |
 | `resolve_domains.py` | Turns a list of brand names into verified domains for `brands.txt`. |
 | `ledger.py` | Session state: niche rotation, dedupe, and re-checking whether saved finds are still alive. |
+| `study.py` | The command you run most. Pulls the top unread finds, spread across brands, and offers to capture them. |
 | `selftest.py` | Offline checks on the decision logic. No network, so it gives the same answer on your machine as on mine. Run it if anything behaves oddly. |
 
 ---
