@@ -250,9 +250,15 @@ def discover(need, pat, want_label, budget_s=240, verbose=True, tier="both"):
         for c in cands[:10]:
             if len(passed) >= target or time.time() - started > budget_s:
                 break
-            host = c.split("/")[2]
-            # never let one brand fill the shortlist
-            if per_brand.get(host, 0) >= max(2, need):
+            host = c.split("/")[2].replace("www.", "")
+            # One per brand until we have enough DISTINCT brands. Only after
+            # that will a second page from the same brand be considered. A
+            # brand with a deep advertorial library will otherwise supply the
+            # whole shortlist, and three pages from one company is not three
+            # advertorials to study.
+            distinct = len({r["url"].split("/")[2].replace("www.", "") for r in passed})
+            cap = 1 if distinct < need else 2
+            if per_brand.get(host, 0) >= cap:
                 continue
             verdict, rec = q.qualify(c, already)
             already.add(c.rstrip("/"))
@@ -291,19 +297,17 @@ def spread(records, need, max_per_brand=1):
 
     records.sort(key=rank)
     out, counts = [], {}
-    for cap in (max_per_brand, max_per_brand + 1, 99):
-        for r in records:
-            if len(out) == need:
-                return out
-            if r in out:
-                continue
-            h = r["url"].split("/")[2].replace("www.", "")
-            if counts.get(h, 0) >= cap:
-                continue
-            out.append(r)
-            counts[h] = counts.get(h, 0) + 1
+    # Strictly one per brand. Returning fewer results is better than padding
+    # with a second page from a brand already shown, which is what "3 finds"
+    # turning into 2 from one company actually was.
+    for r in records:
         if len(out) == need:
             break
+        h = r["url"].split("/")[2].replace("www.", "")
+        if counts.get(h, 0) >= max_per_brand:
+            continue
+        out.append(r)
+        counts[h] = counts.get(h, 0) + 1
     return out
 
 
@@ -418,7 +422,10 @@ def main():
         print("in SOP.md, which reach niches no brand list covers.")
         sys.exit(1)
 
-    picked = picked[:need]
+    picked = spread(picked, need)
+    if len(picked) < need:
+        print(f"\nFound {len(picked)} rather than {need}, one per brand.")
+        print("Raise --budget to sweep more brands, or run again later.")
     mark_shown([r["url"].split("/")[2].replace("www.", "") for r in picked])
     present(picked, note)
     if not args.no_save:

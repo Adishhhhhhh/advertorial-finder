@@ -140,8 +140,16 @@ def main():
 
     # ---------------------------------------------------------------- live
     say("LIVE (depends on other people's servers; WARN is not necessarily a bug)")
+    # Everything the live checks produce goes in a sandbox. Earlier this wrote
+    # into runs/qualified.jsonl, so the first find.py on a fresh install
+    # replayed verification leftovers: one brand, template pages, and no real
+    # search. A check that changes what it is checking is not a check.
+    sandbox = os.path.join(HERE, "runs", ".verify")
+    os.makedirs(sandbox, exist_ok=True)
+    env_note = os.path.join("runs", ".verify")
     code, out = run(["sitemap_sweep.py", "--domain", "groundingwell.com",
-                     "--out", "runs/verify.json", "--delay", "2"], timeout=300)
+                     "--out", os.path.join(env_note, "candidates.json"),
+                     "--delay", "2"], timeout=300)
     hits = num(out, r"candidate pages\s*:\s*(\d+)")
     rate_limited = "http_429" in out
     if code == 0 and hits:
@@ -151,9 +159,10 @@ def main():
                "rate limited (429), not a code fault -- retry later" if rate_limited
                else out.strip()[-160:], warn=rate_limited)
 
-    if os.path.exists(os.path.join(HERE, "runs", "verify.json")):
-        code, out = run(["qualify.py", "runs/verify.json", "--limit", "12",
-                         "--no-probe", "--delay", "2"], timeout=900)
+    if os.path.exists(os.path.join(sandbox, "candidates.json")):
+        code, out = run(["qualify.py", os.path.join(env_note, "candidates.json"),
+                         "--limit", "12", "--no-probe", "--delay", "2",
+                         "--runs-dir", env_note], timeout=900)
         passed = num(out, r"passed\s*:\s*(\d+)")
         failed = num(out, r"failed\s*:\s*(\d+)")
         if code == 0 and passed is not None:

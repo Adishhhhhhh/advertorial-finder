@@ -67,7 +67,10 @@ NOISE = re.compile(
     r"our-story|why-buy-from-us|brand-story|why-us|our-mission|success-story|"
     r"privacy|terms|tracking|shipping|returns?|refund|contact|faq|"
     r"careers?|accessibility|cookie|legal|disclaimer|imprint|"
-    r"wholesale|affiliate-program|press|sitemap|account|login|gift-card",
+    r"wholesale|affiliate-program|press|sitemap|account|login|gift-card|"
+    # template and scratch pages. "copy-of-listicle-template" is a theme
+    # placeholder, not copy anyone wrote to sell something.
+    r"template|copy-of|test-page|-test$|draft|placeholder|untitled|dev-|staging",
     re.I,
 )
 

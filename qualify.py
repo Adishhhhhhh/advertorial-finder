@@ -371,7 +371,8 @@ QUALIFIED = os.path.join(RUNS, "qualified.jsonl")
 REJECTED = os.path.join(RUNS, "rejected.jsonl")
 
 
-def load_ledger(path=QUALIFIED):
+def load_ledger(path=None):
+    path = path or QUALIFIED
     seen = set()
     try:
         for line in open(path, encoding="utf-8"):
@@ -393,9 +394,17 @@ def main():
     ap.add_argument("--no-probe", action="store_true")
     ap.add_argument("--delay", type=float, default=DOMAIN_DELAY,
                     help="seconds between requests to the same domain (raise on 429s)")
+    ap.add_argument("--runs-dir", default=None,
+                    help="write outputs here instead of runs/ (used to sandbox checks)")
     args = ap.parse_args()
 
     globals()["DOMAIN_DELAY"] = args.delay
+    if args.runs_dir:
+        d = args.runs_dir if os.path.isabs(args.runs_dir) else os.path.join(HERE, args.runs_dir)
+        os.makedirs(d, exist_ok=True)
+        globals()["RUNS"] = d
+        globals()["QUALIFIED"] = os.path.join(d, "qualified.jsonl")
+        globals()["REJECTED"] = os.path.join(d, "rejected.jsonl")
 
     urls = load_candidates(args.candidates)
     if args.limit:
