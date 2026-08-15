@@ -1,9 +1,9 @@
 ---
-name: advertorial-finder
+name: advertorial-swiper
 description: Find live, currently-running DTC advertorials and listicles worth studying, qualify them by format, and rank them by how long they have survived. Use when the user asks for advertorials to swipe or study, native-ad landing pages, presell pages, listicle funnels, or wants to know what advertorial copy is working right now in a given niche. Also use to expand the brand corpus or to re-check whether previously saved finds are still live.
 ---
 
-# Advertorial Finder
+# Advertorial Swiper
 
 Find live advertorials worth studying. Six channels, a format filter, and a duration-based ranking.
 
@@ -34,7 +34,23 @@ Read `SOP.md` for the full method before a first run in a session. Everything be
 
 ---
 
-## The loop
+## If the user just wants advertorials, this is the whole answer
+
+```
+python find.py -n 3
+python find.py -n 3 sleep
+python find.py -n 5 "hair loss women over 50"
+```
+
+One to three minutes on a cold cache, usually instant afterwards. No dependencies, no keys, no accounts. It asks before saving; `--yes` skips the prompt, `--no-save` browses only.
+
+Relay the reason line with each result. `sole survivor of variant 14` means every other numbered version of that page is dead and this one is live, so the user is reading the winner of somebody's split test. `live 45.3 months` is measured against the Wayback Machine.
+
+Do not run `verify.py` first unless asked. Do not run the batch tools unless the user wants bulk. Everything below is for deeper work.
+
+---
+
+## The batch loop, for building a corpus
 
 **1. Choose a niche.** `py ledger.py niche` returns the least recently worked. Never repeat a niche two sessions running.
 

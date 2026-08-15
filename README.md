@@ -1,6 +1,6 @@
-# Advertorial Finder
+# Advertorial Swiper
 
-[![smoke](https://github.com/Adishhhhhhh/advertorial-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/Adishhhhhhh/advertorial-finder/actions/workflows/ci.yml)
+[![smoke](https://github.com/Adishhhhhhh/advertorial-swiper/actions/workflows/ci.yml/badge.svg)](https://github.com/Adishhhhhhh/advertorial-swiper/actions/workflows/ci.yml)
 
 **There is an ad library for creative. There is nothing equivalent for landing pages.**
 

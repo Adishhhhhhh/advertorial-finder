@@ -1,5 +1,5 @@
 """
-ledger.py  -  Session state for the advertorial finder.
+ledger.py  -  Session state for the advertorial swiper.
 
 State lives in files, never in an agent's memory, because memory does not survive
 an install on somebody else's machine and the whole point of a ledger is that it

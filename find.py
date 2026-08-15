@@ -329,6 +329,39 @@ def present(picked, pool_note):
     print()
 
 
+def save_text(rec, niche):
+    """Fallback capture with no dependencies at all.
+
+    PDF needs Playwright, which is a 150MB browser download most people will
+    not have on a first run. Failing to save at that point is the worst
+    possible moment to fail: the page was found, judged, and chosen, and
+    presell domains rotate within weeks. So always keep something. The copy is
+    the part worth studying anyway; the PDF only adds layout.
+    """
+    from datetime import date
+    try:
+        _, html = q.fetch(rec["url"])
+    except Exception as e:
+        print(f"    could not fetch: {type(e).__name__}")
+        return False
+
+    slug = re.sub(r"[^a-z0-9]+", "-", rec["url"].split("/")[2] + "-" +
+                  rec["url"].rstrip("/").rsplit("/", 1)[-1].lower())[:70].strip("-")
+    stem = f"{date.today().isoformat()}_{niche}_{slug}"
+    text = q.visible_text(html)
+
+    with open(os.path.join(REPO, stem + ".txt"), "w", encoding="utf-8") as f:
+        f.write(f"{rec.get('title') or ''}\n{rec['url']}\n")
+        f.write(f"captured {date.today().isoformat()}  ·  {why(rec)}\n")
+        f.write("=" * 70 + "\n\n")
+        # one sentence per line, so the structure is readable in a diff or an editor
+        f.write(re.sub(r"(?<=[.!?]) +", "\n", text))
+    with open(os.path.join(REPO, stem + ".html"), "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"    saved copy + html: {stem}.txt")
+    return True
+
+
 def save(picked, auto_yes, mobile=False):
     if auto_yes:
         answer = "y"
@@ -356,13 +389,14 @@ def save(picked, auto_yes, mobile=False):
         out = (p.stdout or "") + (p.stderr or "")
         if "SUCCESS" in out:
             ok += 1
-            print("  saved")
-        elif "playwright" in out.lower():
-            print("  cannot capture: Playwright is not installed.")
-            print("    pip install -r requirements.txt")
-            print("    python -m playwright install chromium")
+            print("  saved as PDF")
         else:
-            print(f"  failed: {out.strip()[-140:]}")
+            if "playwright" in out.lower():
+                print("  Playwright not installed, saving the copy instead.")
+            else:
+                print(f"  PDF failed ({out.strip()[-90:]}), saving the copy instead.")
+            if save_text(r, niche):
+                ok += 1
         subprocess.run([PY, os.path.join(HERE, "ledger.py"), "add", r["url"],
                         niche, "--score", str(r.get("score") or 0)],
                        cwd=HERE, capture_output=True)

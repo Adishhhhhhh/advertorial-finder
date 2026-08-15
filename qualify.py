@@ -1,5 +1,5 @@
 """
-qualify.py  -  Stage 2 (qualify) and Stage 3 (score) for the advertorial finder.
+qualify.py  -  Stage 2 (qualify) and Stage 3 (score) for the advertorial swiper.
 
 Stage 2 is binary and mechanical. It fetches every candidate URL and applies the
 same seven checks the SOP already asks a human to apply. Everything that fails is
