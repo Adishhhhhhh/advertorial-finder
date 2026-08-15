@@ -130,6 +130,18 @@ check("quoted speech detected", bool(q.QUOTED.search(text)), True)
 check("title extracted and entities decoded",
       q.page_title(ADVERTORIAL), "How I Fixed It – Brand")
 
+section("qualify: legal boilerplate does not inflate word counts")
+BOILER = ("<html><body><p>" + ("real advertorial copy here. " * 40) +
+          "</p><div>Terms of Service " + ("boilerplate legalese blah. " * 400) +
+          "</div></body></html>")
+_full = len(q.visible_text(BOILER, trim_legal=False).split())
+_trim = len(q.visible_text(BOILER).split())
+check("boilerplate is cut", _trim < _full / 3, True)
+check("real copy survives the cut", _trim > 100, True)
+check("a passing mention is not decapitated",
+      len(q.visible_text("<p>" + ("word " * 300) + "see our Privacy Policy</p>").split()) > 290,
+      True)
+
 section("qualify: VSL detection")
 check("video-summary title flagged",
       bool(q.VSL_TITLE.search("Lung Health Report - Video Summary")), True)

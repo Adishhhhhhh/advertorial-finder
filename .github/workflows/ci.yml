@@ -50,6 +50,7 @@ jobs:
           python resolve_domains.py --help
           python ledger.py --help
           python study.py --help
+          python find.py --help
           python verify.py --help
 
       - name: pdf_save fails readably without Playwright

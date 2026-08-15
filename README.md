@@ -14,9 +14,9 @@ This finds live ones, qualifies them, and ranks them by how long they have survi
 
 A ranked reading list of real, currently-live advertorials, each one verified to be story-led long-form rather than a product page or a video bridge, scored by measured duration rather than by how fresh it looks.
 
-One unattended run across the 159 shipped brand domains produced **201 qualified advertorials across 32 brands**. The top result is a 17,316-word leaky-gut lander on its third variant, continuously archived for three years and eight months. Length, iteration, and survival all agreeing.
+A single `find.py` run returns one to three. An optional bulk pass across the 159 shipped brand domains returns a couple of hundred in one go, if you would rather have a library than a reading list.
 
-That is one channel of six, and the only one bounded by a brand list at all.
+Either way the unit of value is the same: a page you can open, read, and steal a structure from, with a measured reason it was worth your time.
 
 ---
 
@@ -65,30 +65,37 @@ Full method, including the query taxonomy and every failure mode paid for in a r
 
 > Commands below use `py`, the Windows Python launcher. On macOS and Linux use `python3` instead. Nothing else changes.
 
-Build the list once:
+There is no setup step. Clone it, then:
 
 ```bash
-py sitemap_sweep.py brands.txt --out runs/candidates.json && py qualify.py runs/candidates.json
+py find.py
 ```
 
-Then, every time you want something to read:
+That is the whole tool. It goes out, finds a few live advertorials, checks they are real, ranks them, and shows you why each one ranked. First run takes a couple of minutes; later runs are usually instant, because anything it found and did not show you is kept for next time.
 
 ```bash
-py study.py
+py find.py -n 1                        # just one
+py find.py sleep                       # constrain by niche
+py find.py "hair loss women over 50"   # constrain by anything
+py find.py --fresh                     # ignore the cache, go hunting
 ```
 
-Three advertorials, ranked, spread across different brands, with why each one ranked. It asks whether to save them; answering `y` captures each as a PDF into `Advertorial-Repo/` and records it so you are never offered the same page twice.
+It asks before keeping anything. Answering `y` captures each page as a PDF into `Advertorial-Repo/` and records it, so you are never shown the same page twice and nothing is lost when the page rotates off the internet.
 
 ```
-1. JustThrive
-   https://justthrivehealth.com/pages/leaky-gut-landing-page-v3
-   niche: gut   score 15.43
-   live 44.5 months · sole survivor of variant 3 · 17,316 words
+1. I Was Skeptical Too - Then I Tried the Mat 300,000 People Swear By
+   https://www.groundingwell.com/pages/sheet-adv-14
+   niche: sleep   score 5.40
+   duration unproven · sole survivor of variant 14 · 7,798 words
 
 Save these to Advertorial-Repo/? [y/N]
 ```
 
-`-n 1` for one, `--niche sleep` to pick the category, `--no-save` to browse. Building the list needs no dependencies at all; only the PDF capture needs Playwright.
+That one is worth reading twice. It is variant fourteen of a family whose lower numbers are all shorter and all dead, which is what iterating toward a winner looks like from outside the ad account.
+
+Finding needs no dependencies at all. Only the PDF capture needs Playwright.
+
+**If you want bulk instead of a few at a time**, the batch path is still there: `sitemap_sweep.py` harvests hundreds of candidates across the whole brand list and `qualify.py` filters and ranks them in one pass. That takes about half an hour unattended and fills the cache, so `find.py` is instant afterwards. Most people should not bother.
 
 To check the install works before trusting any of it:
 
@@ -109,7 +116,8 @@ See [INSTALL.md](INSTALL.md) for what works without which dependency, and for wh
 | `pdf_save.py` | Captures a live page as a popup-free PDF before it disappears. |
 | `resolve_domains.py` | Turns a list of brand names into verified domains for `brands.txt`. |
 | `ledger.py` | Session state: niche rotation, dedupe, and re-checking whether saved finds are still alive. |
-| `study.py` | The command you run most. Pulls the top unread finds, spread across brands, and offers to capture them. |
+| `find.py` | **The command.** Finds a few live advertorials on demand, ranks them, offers to keep them. Cache-first, so repeat runs are instant. |
+| `study.py` | Same presentation, but reads only from what is already qualified. Pulls the top unread finds, spread across brands, and offers to capture them. |
 | `selftest.py` | Offline checks on the decision logic. No network, so it gives the same answer on your machine as on mine. Run it if anything behaves oddly. |
 
 ---

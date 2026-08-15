@@ -56,8 +56,26 @@ VSL_BODY = re.compile(
     r"video time:|free (?:\d+[- ]minute )?presentation|"
     r"the presentation is free to watch", re.I)
 
-TAG_STRIP = re.compile(r"<(script|style|noscript|svg)[^>]*>.*?</\1>", re.I | re.S)
+# Only tags that never contain copy. Stripping structural tags was tried and
+# reverted: <header> alone removed 191KB, 36% of a Jones Road listicle, because
+# real sites wrap content in it. The legal-tail cut below does the boilerplate
+# work on its own and costs nothing on genuine pages.
+TAG_STRIP = re.compile(
+    r"<(script|style|noscript|svg|template)[^>]*>.*?</\1>", re.I | re.S)
 TAGS = re.compile(r"<[^>]+>")
+
+# Shopify themes routinely ship the whole Terms of Service, privacy policy and
+# refund policy inside hidden drawers on every page. Counting that text makes a
+# short opt-in page look like a 17,000-word mega-advertorial, which is exactly
+# what happened: justthrivehealth/pages/leaky-gut-landing-page-v3 ranked FIRST
+# on 17,316 words and captured as two pages of "FREE DOWNLOAD".
+#
+# Cut the text at the first strong legal marker that appears after some real
+# content. Everything past it is boilerplate on these pages, never copy.
+LEGAL_TAIL = re.compile(
+    r"(terms of service|terms and conditions|privacy policy|refund policy|"
+    r"shall be governed by|governing law|these terms of service|"
+    r"limitation of liability|indemnification)", re.I)
 
 MIN_WORDS = 400
 
@@ -102,11 +120,19 @@ def fetch(url, timeout=20, throttle=True, retries=2):
             raise
 
 
-def visible_text(html):
+def visible_text(html, trim_legal=True):
     h = TAG_STRIP.sub(" ", html)
     h = TAGS.sub(" ", h)
     h = re.sub(r"&[a-z]+;|&#\d+;", " ", h)
-    return re.sub(r"\s+", " ", h).strip()
+    text = re.sub(r"\s+", " ", h).strip()
+
+    if trim_legal:
+        m = LEGAL_TAIL.search(text)
+        # only trim if there is real content before it, so a page that merely
+        # links "Privacy Policy" in a sentence is not decapitated
+        if m and m.start() > 400:
+            text = text[:m.start()].strip()
+    return text
 
 
 def page_title(html):
