@@ -1,0 +1,53 @@
+# wildcards.txt  -  the small, odd, single-product corpus.
+#
+# These are NOT notable brands. Most are one product with one advertorial
+# funnel, which is where the strangest and most instructive direct response
+# lives: a power-grid backup, a kids camera, a mindfulness box for divorce.
+# A curated watchlist of brands worth following will never contain them,
+# because nobody follows them. That is the point.
+#
+# Recovered from past captures plus the fake-news aggregators that host
+# advertorials for dozens of unrelated advertisers.
+
+# --- aggregators: many brands per domain ---
+healthinsider.news
+health-headline.com
+healthblogs247.com
+consumer-health-report.com
+dailyhealthadvice.net
+healthblogs24.com
+healthlifeexperience.online
+healthnewstoday.net
+
+# --- single-product brands recovered from captures ---
+acuseto.com
+angle.technology.com
+balmyworld.com
+calmfort.co
+calmfort.co
+campaigns.thepetlabco.com
+groundingwell.com
+herbypen.com
+justthrivehealth.com
+kushibeauty.com
+liftlabskin.co
+liftlabskin.com
+liveoptimum.com
+mindfulsouls.com
+mushlift.com
+myobvi.com
+mysilvery.com
+nutri-paw.com
+nuvarawellness.com
+onecompress.com
+ornexis.com
+prostaterevelation.com
+puplabs.com
+shopkiddora.com
+smilechews.com
+toptrainer.com
+
+# --- unreachable, kept for the record ---
+# advert-duplicator-tool
+# getterrashell
+# shopvelena

@@ -119,13 +119,67 @@ def why(rec):
     return " · ".join(bits)
 
 
-def brand_pool():
+def _read_list(name):
     try:
         return [l.strip().split("#")[0].strip()
-                for l in open(os.path.join(HERE, "brands.txt"), encoding="utf-8")
+                for l in open(os.path.join(HERE, name), encoding="utf-8")
                 if l.strip() and not l.strip().startswith("#")]
     except FileNotFoundError:
         return []
+
+
+def brand_pool(tier="both"):
+    """Two corpora, deliberately different populations.
+
+    brands.txt is a watchlist of notable DTC brands. It is curated precisely
+    because those brands are worth following, which makes it the wrong place
+    to look for strange advertorials: nobody curates the company selling a
+    power-grid backup or a kids camera, and that is where the most instructive
+    direct response tends to be.
+
+    wildcards.txt is that other population. Small single-product brands and the
+    fake-news aggregators that host advertorials for dozens of advertisers.
+    Denser in advertorials per domain, and far stranger.
+
+    Default samples both with a bias toward wildcards, because mainstream
+    brands have longer archives and would otherwise win every ranking.
+    """
+    main = [(d, "mainstream") for d in _read_list("brands.txt")]
+    wild = [(d, "wildcard") for d in _read_list("wildcards.txt")]
+    if tier == "mainstream":
+        return main
+    if tier == "wildcard":
+        return wild or main
+    if not wild:
+        return main
+
+    random.shuffle(main)
+    random.shuffle(wild)
+    mixed, mi, wi = [], 0, 0
+    # roughly 2 wildcards for every mainstream domain
+    while mi < len(main) or wi < len(wild):
+        for _ in range(2):
+            if wi < len(wild):
+                mixed.append(wild[wi]); wi += 1
+        if mi < len(main):
+            mixed.append(main[mi]); mi += 1
+    return mixed
+
+
+def shown_recently():
+    try:
+        return json.load(open(os.path.join(RUNS, "shown.json"), encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def mark_shown(hosts):
+    d = shown_recently()
+    now = int(time.time())
+    for h in hosts:
+        d[h] = now
+    os.makedirs(RUNS, exist_ok=True)
+    json.dump(d, open(os.path.join(RUNS, "shown.json"), "w", encoding="utf-8"), indent=1)
 
 
 def recently_swept():
@@ -144,7 +198,7 @@ def mark_swept(domains):
     json.dump(d, open(SWEPT, "w", encoding="utf-8"), indent=1)
 
 
-def discover(need, pat, want_label, budget_s=240, verbose=True):
+def discover(need, pat, want_label, budget_s=240, verbose=True, tier="both"):
     """Sweep a few brands and qualify until we have a decent shortlist.
 
     Deliberately collects more than asked for, then ranks. Taking the first
@@ -152,13 +206,15 @@ def discover(need, pat, want_label, budget_s=240, verbose=True):
     first cold run was two product pages from the same company. Over-collecting
     and sorting costs a little time and changes the quality of the answer.
     """
-    pool = brand_pool()
-    if not pool:
+    pool_tiered = brand_pool(tier)
+    if not pool_tiered:
         return []
     seen_before = recently_swept()
-    # least recently swept first, with a shuffle so two runs differ
-    random.shuffle(pool)
-    pool.sort(key=lambda d: seen_before.get(d, 0))
+    # least recently swept first; the interleave from brand_pool is preserved
+    # within equal timestamps, so the wildcard bias survives the sort
+    pool_tiered.sort(key=lambda dt: seen_before.get(dt[0], 0))
+    pool = [d for d, _ in pool_tiered]
+    tier_of = dict(pool_tiered)
 
     started = time.time()
     passed, tried_domains = [], []
@@ -202,33 +258,52 @@ def discover(need, pat, want_label, budget_s=240, verbose=True):
             already.add(c.rstrip("/"))
             if verdict == "pass":
                 rec.pop("_head", None)
+                rec["tier"] = tier_of.get(host.replace("www.", ""), "unknown")
                 passed.append(rec)
                 per_brand[host] = per_brand.get(host, 0) + 1
                 if verbose:
-                    print(f"    found: {(rec.get('title') or c)[:58]}")
+                    mark = "*" if rec["tier"] == "wildcard" else " "
+                    print(f"   {mark}found: {(rec.get('title') or c)[:56]}")
 
     if tried_domains:
         mark_swept(tried_domains)
     return passed
 
 
-def spread(records, need):
-    """Top N, at most one per brand until brands run out."""
-    records.sort(key=lambda r: -(r.get("score") or 0))
-    out, hosts = [], set()
-    for r in records:
-        h = r["url"].split("/")[2]
-        if h in hosts:
-            continue
-        out.append(r)
-        hosts.add(h)
-        if len(out) == need:
-            return out
-    for r in records:
+def spread(records, need, max_per_brand=1):
+    """Top N, spread across brands and away from brands shown recently.
+
+    Two things this fixes. Ranking alone returned three pages from one company,
+    because a brand with a deep advertorial library dominates the top of any
+    sorted list. And consecutive runs returned the same brands, because nothing
+    remembered what was shown last time.
+    """
+    recent = shown_recently()
+    now = time.time()
+
+    def rank(r):
+        host = r["url"].split("/")[2].replace("www.", "")
+        score = r.get("score") or 0
+        # a brand shown in the last three days sinks unless nothing else exists
+        age_days = (now - recent.get(host, 0)) / 86400 if host in recent else 999
+        penalty = 6 if age_days < 3 else (2 if age_days < 10 else 0)
+        return -(score - penalty)
+
+    records.sort(key=rank)
+    out, counts = [], {}
+    for cap in (max_per_brand, max_per_brand + 1, 99):
+        for r in records:
+            if len(out) == need:
+                return out
+            if r in out:
+                continue
+            h = r["url"].split("/")[2].replace("www.", "")
+            if counts.get(h, 0) >= cap:
+                continue
+            out.append(r)
+            counts[h] = counts.get(h, 0) + 1
         if len(out) == need:
             break
-        if r not in out:
-            out.append(r)
     return out
 
 
@@ -243,7 +318,9 @@ def present(picked, pool_note):
         print()
         print(f"{i}. {(r.get('title') or 'untitled').strip()[:66]}")
         print(f"   {r['url']}")
-        print(f"   niche: {guess_niche(r)}   score {r.get('score') or 0:.2f}")
+        tier = r.get("tier", "")
+        badge = "  [wildcard]" if tier == "wildcard" else ""
+        print(f"   niche: {guess_niche(r)}   score {r.get('score') or 0:.2f}{badge}")
         print(f"   {why(r)}")
     print()
 
@@ -297,6 +374,8 @@ def main():
     ap.add_argument("--no-save", action="store_true")
     ap.add_argument("--mobile", action="store_true")
     ap.add_argument("--budget", type=int, default=240, help="seconds to spend hunting")
+    ap.add_argument("--tier", choices=["both", "wildcard", "mainstream"], default="both",
+                    help="wildcard = small odd single-product brands and aggregators")
     args = ap.parse_args()
 
     text = " ".join(args.constraint).strip()
@@ -310,16 +389,9 @@ def main():
     if not args.fresh:
         pool = [r for u, r in cached.items()
                 if u not in saved and matches(r, pat)]
-        pool.sort(key=lambda r: -(r.get("score") or 0))
-        seen_hosts = set()
-        for r in pool:
-            host = r["url"].split("/")[2]
-            if host in seen_hosts:
-                continue
-            picked.append(r)
-            seen_hosts.add(host)
-            if len(picked) == need:
-                break
+        if args.tier != "both":
+            pool = [r for r in pool if r.get("tier", "mainstream") == args.tier]
+        picked = spread(pool, need)
         if picked:
             note = f"from {len(pool)} already qualified" + (f" in '{label}'" if label else "")
 
@@ -327,7 +399,7 @@ def main():
         short = need - len(picked)
         print(f"Hunting for {short} more{' in ' + label if label else ''}. "
               f"This takes a minute or two.")
-        found = discover(short, pat, bool(label), budget_s=args.budget)
+        found = discover(short, pat, bool(label), budget_s=args.budget, tier=args.tier)
         if found:
             print(f"\n  scoring {len(found)} candidates and taking the best...")
             with ThreadPoolExecutor(max_workers=4) as ex:
@@ -347,6 +419,7 @@ def main():
         sys.exit(1)
 
     picked = picked[:need]
+    mark_shown([r["url"].split("/")[2].replace("www.", "") for r in picked])
     present(picked, note)
     if not args.no_save:
         save(picked, args.yes, args.mobile)

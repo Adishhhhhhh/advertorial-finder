@@ -230,7 +230,9 @@ def cmd_harvest(args):
         if m:
             found.add(m.group(1).lower().replace("www.", ""))
 
-    brands_path = os.path.join(HERE, "brands.txt")
+    # New domains go to wildcards: anything discovered through a keyword
+    # channel is by definition not on a curated watchlist.
+    brands_path = os.path.join(HERE, "wildcards.txt")
     existing, lines = set(), []
     try:
         lines = open(brands_path, encoding="utf-8").read().splitlines()

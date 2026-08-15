@@ -49,6 +49,19 @@ A, B, C and F reach **any niche, however obscure**, because they are driven by w
 
 D is different. It is bounded by `brands.txt` by construction. It earns its place because it runs unattended and produces hundreds of candidates at once, which makes it the fastest way to build a standing corpus. **It is a volume channel, not the system.** Treating it as the system would silently cap you at whatever list you started with.
 
+### Two corpora, because the interesting advertorials are not on anyone's watchlist
+
+`brands.txt` holds notable DTC brands. It is curated because those brands are worth following, which makes it exactly the wrong place to look for strange advertorials. Nobody curates the company selling a power-grid backup, a kids camera, or a mindfulness box aimed at people going through a divorce, and those are the pages worth reading, because direct response principles are easiest to see when the product is odd and the operator has no brand equity to hide behind.
+
+`wildcards.txt` is that other population: small single-product brands, plus the fake-news aggregator domains that host advertorials for dozens of unrelated advertisers. **Denser in advertorials per domain than the mainstream list, and far stranger.**
+
+`find.py` samples both by default, biased roughly two-to-one toward wildcards, because mainstream brands have longer archives and would otherwise win every ranking on duration alone.
+
+```bash
+py find.py --tier wildcard      # only the odd corner
+py find.py --tier mainstream    # only the known brands
+```
+
 ### The brand list is an output, not an input
 
 ```bash
