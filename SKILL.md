@@ -21,14 +21,16 @@ Read `SOP.md` for the full method before a first run in a session. Everything be
 
 ## Pick the channel from what the user asked for
 
-| They want | Run | Needs |
+| They want | Run | Bounded by |
 |---|---|---|
-| Volume, or a corpus to work from | **D**, sitemap sweep | nothing |
-| A specific niche, today | **A/B**, the disclaimer dorks | logged-in browser |
-| What is being actively bought, with run duration | **C**, Ad Library | nothing |
-| The live chumbox | **F**, local news sites | US IP |
+| A specific niche, however obscure | **A/B**, the disclaimer dorks | your keywords only |
+| What is being actively bought, with run duration | **C**, Ad Library | your keywords only |
+| The live chumbox | **F**, local news sites | nothing (needs a US IP) |
+| Volume, or a standing corpus to work from | **D**, sitemap sweep | the brand list |
 
-Default to D when the user has no specific niche, because it is unattended and highest volume. Default to A/B when they name a niche.
+**Default to A/B/C, not D.** The keyword-driven channels reach any niche and are the reason this system is worth using; obscure categories are where direct response principles get validated rather than assumed. Reach for D when the user wants bulk, or has no particular niche in mind, or wants a corpus built while they do something else.
+
+**Never present D's brand list as the boundary of what exists.** It is a starting corpus. After any session that produced finds, run `py ledger.py harvest` to feed those domains back into `brands.txt`, so the one bounded channel keeps widening.
 
 ---
 

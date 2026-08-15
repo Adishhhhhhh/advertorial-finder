@@ -32,16 +32,28 @@ Scoring sorts. It never filters.
 
 ## The six channels
 
-| | Channel | The move | Needs |
-|---|---|---|---|
-| A | Brand dork | `"not an actual news article" "results may vary" [keyword]` | Real Google in a logged-in browser |
-| B | Presell dork | `"an advertisement and not a news publication" [story phrase]` | Real Google in a logged-in browser |
-| C | Ad Library | Search ad copy for a story phrase, follow the ad to its lander | Nothing. Free. |
-| D | Sitemap sweep | `py sitemap_sweep.py brands.txt` | Nothing. Free. Highest volume. |
-| E | Wayback CDX | Duration lookup. Scoring, not discovery. | Nothing. Free. |
-| F | Local-news chumbox | Pick any US city, open its news site, scroll to Sponsored Content | **A US IP** |
+**Four of them are unbounded. One is not, and that difference matters more than the volume numbers.**
 
-A and B carry the two disclaimer strings advertisers are legally required to publish, and they route to two different ad ecosystems. C hunts the ad rather than the page, and is the only channel that hands you run duration without inference. D is the volume channel and needs no search engine at all.
+| | Channel | Bounded by | The move | Needs |
+|---|---|---|---|---|
+| A | Brand dork | **your keywords only** | `"not an actual news article" "results may vary" [keyword]` | Google, in a browser you're signed into |
+| B | Presell dork | **your keywords only** | `"an advertisement and not a news publication" [story phrase]` | Google, in a browser you're signed into |
+| C | Ad Library | **your keywords only** | Search ad copy for a story phrase, follow the ad to its lander | Nothing |
+| F | Local-news chumbox | **nothing** | Pick any US city, open its news site, scroll to Sponsored Content | A US IP |
+| D | Sitemap sweep | a brand list | `py sitemap_sweep.py brands.txt` | Nothing |
+| E | Wayback CDX | n/a | Duration lookup. Scoring, not discovery. | Nothing |
+
+A, B, C and F reach **any niche, however obscure**, because they are driven by what you search rather than by who you already know about. That is where versatility comes from, and it is the point: direct response principles are worth studying precisely where they show up in odd, unglamorous categories, not only in the mainstream supplement brands everybody already watches.
+
+D is different. It is bounded by `brands.txt` by construction. It earns its place because it runs unattended and produces hundreds of candidates at once, which makes it the fastest way to build a standing corpus. **It is a volume channel, not the system.** Treating it as the system would silently cap you at whatever list you started with.
+
+### The brand list is an output, not an input
+
+```bash
+py ledger.py harvest
+```
+
+Every advertorial found through a keyword-driven channel is a brand the sweep did not know about. `harvest` reads your finds, extracts their domains, and appends the new ones to `brands.txt`. Run it after a session and the bounded channel is permanently less bounded. The list ships with 159 domains so the tool works on day one; it is a floor, never a ceiling.
 
 Full method, including the query taxonomy and every failure mode paid for in a real session, is in [SOP.md](SOP.md).
 

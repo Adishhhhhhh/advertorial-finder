@@ -40,6 +40,9 @@ jobs:
       - name: Logic checks, offline
         run: python selftest.py
 
+      - name: Full install verification, offline
+        run: python verify.py --offline
+
       - name: Every entry point responds to --help
         run: |
           python sitemap_sweep.py --help

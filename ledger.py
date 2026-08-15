@@ -208,12 +208,70 @@ def cmd_recheck(args):
         print("now the only copy, and the capture date is the lower bound.")
 
 
+def cmd_harvest(args):
+    """Feed domains from finds back into brands.txt.
+
+    The sitemap sweep is the only channel bounded by a list, and left alone
+    that bound never moves. The dorks and the ad library are bounded by
+    nothing but your keywords, so every advertorial they turn up is a brand
+    the sweep did not know about. Running this after a session makes the
+    bounded channel less bounded, permanently.
+    """
+    sources = []
+    for path in (os.path.join(RUNS, "qualified.jsonl"), FINDS):
+        sources += read_jsonl(path)
+    if not sources:
+        print("nothing to harvest yet. Qualify or save some finds first.")
+        return
+
+    found = set()
+    for r in sources:
+        m = re.match(r"^https?://([^/]+)", r.get("url", ""))
+        if m:
+            found.add(m.group(1).lower().replace("www.", ""))
+
+    brands_path = os.path.join(HERE, "brands.txt")
+    existing, lines = set(), []
+    try:
+        lines = open(brands_path, encoding="utf-8").read().splitlines()
+        for l in lines:
+            l = l.strip()
+            if l and not l.startswith("#"):
+                existing.add(l.split("#")[0].strip().lower())
+    except FileNotFoundError:
+        pass
+
+    new = sorted(d for d in found if d not in existing)
+    print(f"domains in finds : {len(found)}")
+    print(f"already listed   : {len(found) - len(new)}")
+    print(f"new              : {len(new)}")
+    if not new:
+        return
+    for d in new:
+        print("   ", d)
+
+    if args.dry_run:
+        print("\ndry run, nothing written. Drop --dry-run to append.")
+        return
+
+    with open(brands_path, "a", encoding="utf-8") as f:
+        f.write(f"\n# harvested from finds, {today()}\n")
+        for d in new:
+            f.write(d + "\n")
+    print(f"\nappended {len(new)} domains to brands.txt")
+    print("Next sweep will cover them.")
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("status").set_defaults(fn=cmd_status)
     sub.add_parser("niche").set_defaults(fn=cmd_niche)
+
+    h = sub.add_parser("harvest", help="feed find domains back into brands.txt")
+    h.add_argument("--dry-run", action="store_true")
+    h.set_defaults(fn=cmd_harvest)
 
     a = sub.add_parser("add")
     a.add_argument("url")
